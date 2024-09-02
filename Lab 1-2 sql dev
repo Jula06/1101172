@@ -1,0 +1,42 @@
+SELECT * FROM employees ;
+SELECT * FROM countries ;
+SELECT * FROM departments ;
+SELECT * FROM jobs ;
+SELECT * FROM job_history ;
+SELECT * FROM locations;
+SELECT * FROM REGIONS;
+
+--1
+SELECT FIRST_NAME , LAST_NAME FROM employees ORDER BY FIRST_NAME , LAST_NAME  ;
+--2
+SELECT COUNT(EMPLOYEE_ID)  FROM employees ;
+--3
+SELECT FIRST_NAME , LAST_NAME , SALARY * 12 AS YEAR_SALARY FROM employees ORDER BY YEAR_SALARY DESC ;
+--4
+SELECT  e.FIRST_NAME , e.LAST_NAME , d.department_name FROM employees e , departments d WHERE e.department_id = d.department_id ORDER BY EMPLOYEE_ID DESC ;
+--5
+SELECT  e.FIRST_NAME , e.LAST_NAME , j.job_title FROM employees e , jobs j WHERE e.job_id = j.job_id ORDER BY EMPLOYEE_ID DESC ;
+--6
+SELECT e.FIRST_NAME , e.LAST_NAME  FROM employees e WHERE e.department_ID = (SELECT d.department_ID FROM departments d WHERE d.department_name = 'Accounting' 
+ORDER BY EMPLOYEE_ID DESC ;
+--7
+SELECT e.SALARY  FROM employees e WHERE e.department_id = '110' AND ROWNUM <= 1 ;
+--8
+SELECT SUM(e.SALARY) AS SUMSALARY_Account FROM employees e WHERE e.department_ID = (SELECT d.department_ID FROM departments d WHERE d.department_name = 'Accounting') ;
+
+--2.1
+SELECT DISTINCT location_ID  FROM  departments WHERE location_ID IS NOT NULL ;
+--2.2
+SELECT department_name || '(' || department_ID || ')''s Location Id: ' || location_ID AS "Department's Detail"
+FROM departments;
+--2.3
+SELECT EMPLOYEE_ID AS "ID" , FIRST_NAME || ' ' || LAST_NAME AS "Name",  MANAGER_ID 
+FROM EMPLOYEES WHERE manager_ID IS NULL;
+--2.4
+SELECT department_name, department_ID
+FROM DEPARTMENTS
+WHERE location_ID IN (1400, 1500, 1700)
+ORDER BY  department_name;
+
+
+
