@@ -1,0 +1,283 @@
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('HELLO: Adv DB');
+END ;
+
+5.1
+--DECLARE
+ v_StdID VARCHAR(8) := 'B6641139';
+ v_StdName VARCHAR(100) := 'Julalak Bupphaprommarat';
+ v_Today  DATE := SYSDATE;
+ v_Tomorrow  DATE ;
+BEGIN
+    v_Tomorrow := v_Today + 1 ;
+    
+ DBMS_OUTPUT.PUT_LINE('ID := ' || v_StdID);
+ DBMS_OUTPUT.PUT_LINE('Name := ' || v_StdName);
+ DBMS_OUTPUT.PUT_LINE('Today is := ' TO_CHAR(v_Today,'dd-mon-yy'));
+ DBMS_OUTPUT.PUT_LINE('Tomorrow is := 'TO_CHAR(v_Tomorrow,'dd-mon-yy'));
+END;
+/
+
+DECLARE
+    v_StdID VARCHAR2(8) := 'B6641139';
+    v_StdName VARCHAR2(100) := 'Julalak Bupphaprommarat';
+    v_Today DATE := SYSDATE;
+    v_Tomorrow DATE;
+BEGIN
+    v_Tomorrow := v_Today + 1;
+    
+    DBMS_OUTPUT.PUT_LINE('ID := ' || v_StdID);
+    DBMS_OUTPUT.PUT_LINE('Name := ' || v_StdName);
+    DBMS_OUTPUT.PUT_LINE('Today is := ' || TO_CHAR(v_Today, 'dd-mon-yy'));
+    DBMS_OUTPUT.PUT_LINE('Tomorrow is := ' || TO_CHAR(v_Tomorrow, 'dd-mon-yy'));
+END;
+/
+
+5.2
+SELECT  EMPLOYEE_ID , 
+        FIRST_NAME || ' ' || LAST_NAME AS EMPLOYEE_NAME , 
+        TO_CHAR(HIRE_DATE, 'Month DD , YYYY') AS "START WORK" ,
+        NVL(COMMISSION_PCT,0) AS COMMISSION 
+FROM EMPLOYEES
+WHERE UPPER(SUBSTR(FIRST_NAME, 1, 1)) BETWEEN 'C' AND 'H'
+ORDER BY EMPLOYEE_NAME;
+
+5.3
+DECLARE
+    v_maxID EMPLOYEES.EMPLOYEE_ID%TYPE;
+    v_emid EMPLOYEES.EMPLOYEE_ID%TYPE;
+    v_fname EMPLOYEES.FIRST_NAME%TYPE;
+    v_lname EMPLOYEES.LAST_NAME%TYPE;
+    v_email EMPLOYEES.EMAIL%TYPE;
+    v_phone EMPLOYEES.PHONE_NUMBER%TYPE;
+    v_hiredate EMPLOYEES.HIRE_DATE%TYPE;
+    v_jobid EMPLOYEES.JOB_ID%TYPE;
+    v_salary EMPLOYEES.SALARY%TYPE;
+    v_commiss EMPLOYEES.COMMISSION_PCT%TYPE;
+    v_manager EMPLOYEES.MANAGER_ID%TYPE;
+    v_department EMPLOYEES.DEPARTMENT_ID%TYPE;
+    v_no VARCHAR(8) := '01';
+BEGIN
+    SELECT MAX(employee_id)INTO v_maxID from employees;
+    v_maxID := v_maxID + 1;
+    --DBMS_OUTPUT.PUT_LINE(v_maxID);
+    v_emid := v_maxID - 100;
+    --DBMS_OUTPUT.PUT_LINE(v_emid);
+    SELECT first_name,last_name,email,phone_number,hire_date,job_id,salary,commission_pct,manager_id,department_id 
+    INTO v_fname,v_lname,v_email,v_phone,v_hiredate,v_jobid,v_salary,v_commiss,v_manager,v_department
+    FROM employees
+    where employee_id = v_emid;
+    --DBMS_OUTPUT.PUT_LINE(v_maxID);
+    v_email:=v_email||v_no;
+    --DBMS_OUTPUT.PUT_LINE(v_email);
+    COMMIT;
+    INSERT INTO employees (employee_id,first_name,last_name,email,phone_number,hire_date,job_id,salary,commission_pct,manager_id,department_id)
+    VALUES (v_maxID, v_fname, v_lname, v_email, v_phone, v_hiredate, v_jobid, v_salary, null , v_manager, v_department);
+    COMMIT;
+
+    DBMS_OUTPUT.PUT_LINE('Inserted a new employee (' || v_maxID || ') using ' || v_fname || '''s information.');
+        DBMS_OUTPUT.PUT_LINE('1 row inserted.');
+   
+END;
+/
+
+
+SELECT * from employees order by employee_id DESC;    
+SELECT * from employees where employee_id ='207';
+SELECT * from employees where employee_id ='208';
+SELECT * from JOBS;
+SELECT * from employees;
+
+6.1
+CREATE TABLE SA_EMP AS
+SELECT * FROM EMPLOYEES
+WHERE JOB_ID IN ('SA_MAN', 'SA_REP');
+
+SELECT * FROM SA_EMP ;
+SELECT * FROM Employees ;
+
+DROP TABLE SA_EMP
+
+DECLARE
+    v_count NUMBER := 0;
+BEGIN
+    UPDATE SA_EMP
+    SET COMMISSION_PCT = COMMISSION_PCT * 0.1
+    WHERE JOB_ID = 'SA_MAN' AND DEPARTMENT_ID = (SELECT DEPARTMENT_ID FROM DEPARTMENTS WHERE DEPARTMENT_ID = '80');
+
+    UPDATE SA_EMP
+    SET COMMISSION_PCT = COMMISSION_PCT * 0.2
+    WHERE JOB_ID = 'SA_REP' AND DEPARTMENT_ID = (SELECT DEPARTMENT_ID FROM DEPARTMENTS WHERE DEPARTMENT_ID = '80');
+
+    SELECT COUNT(*) INTO v_count
+    FROM SA_EMP
+    WHERE (JOB_ID = 'SA_MAN' AND COMMISSION_PCT < 0.20)
+       OR (JOB_ID = 'SA_REP' AND COMMISSION_PCT < 0.10);
+    DBMS_OUTPUT.PUT_LINE(v_count || ' records updated!');
+
+    --DBMS_OUTPUT.PUT_LINE('Insert a new employee (' || v_ID || ') using ' 
+    --|| v_fname || '''s information. 1 row inserted.');
+    COMMIT;
+    
+END;
+/
+
+6.2
+--DECLARE
+    v_manager_id EMPLOYEES.MANAGER_ID%TYPE;
+    v_max_salary EMPLOYEES.SALARY%TYPE;
+    v_has_higher_paid_sales BOOLEAN := FALSE;
+    v_sales_count NUMBER := 0;
+BEGIN
+    FOR rec IN (SELECT DISTINCT MANAGER_ID
+                FROM EMPLOYEES
+                WHERE MANAGER_ID IN (145, 146, 147))
+    LOOP
+        v_manager_id := rec.MANAGER_ID;
+
+        SELECT COUNT(*)
+        INTO v_sales_count
+        FROM EMPLOYEES
+        WHERE MANAGER_ID = v_manager_id
+          AND JOB_ID = 'SA_MAN'
+          AND SALARY > (SELECT SALARY FROM EMPLOYEES WHERE EMPLOYEE_ID = v_manager_id);
+
+        IF v_sales_count > 0 THEN
+            v_has_higher_paid_sales := TRUE;
+
+            SELECT MAX(SALARY)
+            INTO v_max_salary
+            FROM EMPLOYEES
+            WHERE MANAGER_ID = v_manager_id
+              AND JOB_ID = 'SA_MAN';
+              
+            DBMS_OUTPUT.PUT_LINE('ID:' || v_manager_id || ' has salespeople with higher salary.');
+            DBMS_OUTPUT.PUT_LINE('Highest salary of salespeople under manager ID ' || v_manager_id || ' is ' || v_max_salary || '.');
+        END IF;
+    END LOOP;
+    IF NOT v_has_higher_paid_sales THEN
+        DBMS_OUTPUT.PUT_LINE('No salespeople with higher salary found for managers with ID 145, 146, or 147.');
+    END IF;
+END;
+/
+
+
+SELECT * FROM EMPLOYEES WHERE MANAGER_ID IN (145, 146, 147)
+SELECT * FROM EMPLOYEES WHERE EMPLOYEE_ID IN (145, 146, 147)
+SELECT * FROM EMPLOYEES WHERE salary = '1500'
+
+--try
+DECLARE
+    v_manager_id EMPLOYEES.MANAGER_ID%TYPE;
+    v_manager_name EMPLOYEES.FIRST_NAME%TYPE;
+    v_manager_salary EMPLOYEES.SALARY%TYPE;
+    v_max_sales_salary EMPLOYEES.SALARY%TYPE;
+    v_sales_count NUMBER := 0;
+BEGIN
+    FOR r IN (SELECT DISTINCT MANAGER_ID
+                FROM EMPLOYEES
+                WHERE MANAGER_ID IN (145, 146, 147))
+    LOOP
+        v_manager_id := r.MANAGER_ID;
+
+        SELECT FIRST_NAME, SALARY
+        INTO v_manager_name, v_manager_salary
+        FROM EMPLOYEES
+        WHERE EMPLOYEE_ID = v_manager_id;
+
+        SELECT MAX(SALARY)
+        INTO v_max_sales_salary
+        FROM EMPLOYEES
+        WHERE MANAGER_ID = v_manager_id
+          AND JOB_ID = 'SA_REP';
+
+        DBMS_OUTPUT.PUT_LINE('ID:' || v_manager_id || ' ' || v_manager_name || 
+        ' earns ' || v_manager_salary || ',' || 'MORE THAN ' || v_max_sales_salary || '.');
+
+        /*IF v_max_sales_salary IS NOT NULL AND v_max_sales_salary > v_manager_salary THEN
+            DBMS_OUTPUT.PUT_LINE('has salespeople with higher salary.');
+        ELSE
+            DBMS_OUTPUT.PUT_LINE('MORE THAN ' || v_max_sales_salary || '.');
+        END IF;*/
+    END LOOP;
+END;
+/
+
+
+6.3
+--DECLARE
+    TYPE emp_record IS RECORD (
+        emp_id      EMPLOYEES.EMPLOYEE_ID%TYPE,
+        emp_name    EMPLOYEES.FIRST_NAME%TYPE || ' ' || EMPLOYEES.LAST_NAME%TYPE,
+        hire_date   EMPLOYEES.HIRE_DATE%TYPE,
+        years_worked NUMBER,
+        months_worked NUMBER
+    );
+
+    v_emp emp_record;
+
+    v_years NUMBER;
+    v_months NUMBER;
+BEGIN
+    SELECT EMPLOYEE_ID,
+           FIRST_NAME || ' ' || LAST_NAME,
+           HIRE_DATE
+    INTO v_emp.emp_id, v_emp.emp_name, v_emp.hire_date
+    FROM EMPLOYEES
+    WHERE EMPLOYEE_ID = 200;
+
+    SELECT TRUNC(MONTHS_BETWEEN(SYSDATE, v_emp.hire_date) / 12) INTO v_years FROM DUAL;
+    SELECT MOD(TRUNC(MONTHS_BETWEEN(SYSDATE, v_emp.hire_date)), 12) INTO v_months FROM DUAL;
+
+    v_emp.years_worked := v_years;
+    v_emp.months_worked := v_months;
+
+    /*DBMS_OUTPUT.PUT_LINE('Employee ID: ' || v_emp.emp_id);
+    DBMS_OUTPUT.PUT_LINE('Name: ' || v_emp.emp_name);
+    DBMS_OUTPUT.PUT_LINE('Hire Date: ' || TO_CHAR(v_emp.hire_date, 'DD-MON-YYYY'));
+    DBMS_OUTPUT.PUT_LINE('Years Worked: ' || v_emp.years_worked);
+    DBMS_OUTPUT.PUT_LINE('Months Worked: ' || v_emp.months_worked);*/
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('No employee found with ID 200.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('An error has occurred: ' || SQLERRM);
+END;
+/
+select * from employees where employee_id = '200';
+
+
+DECLARE
+    TYPE emp_record IS RECORD (
+        emp_id          EMPLOYEES.EMPLOYEE_ID%TYPE,
+        emp_name        VARCHAR2(100),
+        hire_date       DATE,
+        years_worked    NUMBER,
+        months_worked   NUMBER
+    );
+
+    v_emp emp_record;
+
+    v_months NUMBER;
+    v_today DATE := SYSDATE; 
+BEGIN
+    SELECT EMPLOYEE_ID,
+           FIRST_NAME || ' ' || LAST_NAME,
+           HIRE_DATE
+    INTO v_emp.emp_id, v_emp.emp_name, v_emp.hire_date
+    FROM EMPLOYEES
+    WHERE EMPLOYEE_ID = 200;
+
+    SELECT MONTHS_BETWEEN(v_today, v_emp.hire_date) INTO v_months FROM DUAL;
+
+    v_emp.years_worked := FLOOR(v_months / 12);
+    v_emp.months_worked := ROUND(MOD(v_months, 12));
+    
+    DBMS_OUTPUT.PUT_LINE('Printed on ' || TO_CHAR(v_today, 'DD/MM/YYYY'));
+    DBMS_OUTPUT.PUT_LINE('ID:' || v_emp.emp_id || ' ' || v_emp.emp_name || ', since ' || TO_CHAR(v_emp.hire_date, 'DD/MM/YYYY') || ', ' || v_emp.years_worked || ' years ' || v_emp.months_worked || ' month');
+    
+END;
+/
+
+
