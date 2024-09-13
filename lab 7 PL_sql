@@ -1,0 +1,122 @@
+7.1
+DECLARE
+    CURSOR emp_cursor IS
+        SELECT employee_id, first_name, last_name, hire_date, 
+               NVL(commission_pct, 0) AS commission_pct
+        FROM employees
+        WHERE SUBSTR(first_name, 1, 1) BETWEEN 'C' AND 'H'
+        ORDER BY first_name;
+
+    v_employee_id employees.employee_id%TYPE;
+    v_first_name employees.first_name%TYPE;
+    v_last_name employees.last_name%TYPE;
+    v_hire_date employees.hire_date%TYPE;
+    v_commission_pct NUMBER;
+BEGIN
+    FOR emp_rec IN emp_cursor LOOP
+        v_employee_id := emp_rec.employee_id;
+        v_first_name := emp_rec.first_name;
+        v_last_name := emp_rec.last_name;
+        v_hire_date := emp_rec.hire_date;
+        v_commission_pct := emp_rec.commission_pct;
+
+        DBMS_OUTPUT.PUT_LINE('ID :' || v_employee_id || 
+                             ' ' || v_first_name || ' ' || v_last_name || 
+                             ', since ' || TO_CHAR(v_hire_date, 'MM/DD/YYYY') || 
+                             ', comm: ' || v_commission_pct || '%');
+    END LOOP;
+END;
+
+7.2
+DECLARE
+    CURSOR c_year IS
+        SELECT EXTRACT(YEAR FROM hire_date) AS hire_year, COUNT(*) AS emp_count
+        FROM employees
+        GROUP BY EXTRACT(YEAR FROM hire_date)
+        ORDER BY EXTRACT(YEAR FROM hire_date) DESC;
+    
+    CURSOR c_emp(p_year NUMBER) IS
+        SELECT employee_id, first_name, last_name, hire_date
+        FROM employees
+        WHERE EXTRACT(YEAR FROM hire_date) = p_year
+        ORDER BY first_name;
+
+    v_hire_year NUMBER;
+    v_emp_count NUMBER;
+    v_employee_id employees.employee_id%TYPE;
+    v_first_name employees.first_name%TYPE;
+    v_last_name employees.last_name%TYPE;
+    v_hire_date employees.hire_date%TYPE;
+    
+    v_current_date DATE := SYSDATE;
+    v_years_worked NUMBER;
+    v_months_worked NUMBER;
+    v_Today DATE := SYSDATE;
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Printed on '|| TO_CHAR(v_Today, 'DD/MM/YYYY'));
+    FOR year_rec IN c_year LOOP
+        v_hire_year := year_rec.hire_year;
+        v_emp_count := year_rec.emp_count;
+
+        DBMS_OUTPUT.PUT_LINE('Acquired since ' || v_hire_year || ' (' || v_emp_count || ' persons)========');
+        
+        FOR emp_rec IN c_emp(v_hire_year) LOOP
+            v_employee_id := emp_rec.employee_id;
+            v_first_name := emp_rec.first_name;
+            v_last_name := emp_rec.last_name;
+            v_hire_date := emp_rec.hire_date;
+
+            v_years_worked := EXTRACT(YEAR FROM v_current_date) - EXTRACT(YEAR FROM v_hire_date);
+            v_months_worked := EXTRACT(MONTH FROM v_current_date) - EXTRACT(MONTH FROM v_hire_date);
+
+            IF v_months_worked < 0 THEN
+                v_years_worked := v_years_worked - 1;
+                v_months_worked := v_months_worked + 12;
+            END IF;
+            
+            DBMS_OUTPUT.PUT_LINE('ID :' || v_employee_id || ' ' || v_first_name || ' ' || v_last_name || 
+                                 ', since ' || TO_CHAR(v_hire_date, 'DD/MM/YYYY') || 
+                                 ', ' || v_years_worked || ' years ' || v_months_worked || ' months');
+        END LOOP;
+    END LOOP;
+    --DBMS_OUTPUT.PUT_LINE('Printed on '|| TO_CHAR(v_Today, 'DD/MM/YYYY'));
+END;
+
+7.3
+SET SERVEROUTPUT ON;
+
+DECLARE
+    v_dept_id NUMBER := &dept_id;
+
+    v_top_emp_name employees.first_name%TYPE;
+    v_top_emp_last_name employees.last_name%TYPE;
+    v_top_salary employees.salary%TYPE;
+
+    v_employee_count NUMBER;
+
+    no_employees EXCEPTION;
+
+BEGIN
+    SELECT COUNT(*)
+    INTO v_employee_count
+    FROM employees
+    WHERE department_id = v_dept_id;
+
+    IF v_employee_count = 0 THEN
+        RAISE no_employees;
+    END IF;
+
+    SELECT first_name, last_name, salary
+    INTO v_top_emp_name, v_top_emp_last_name, v_top_salary
+    FROM employees
+    WHERE department_id = v_dept_id
+    ORDER BY salary DESC
+    FETCH FIRST ROW ONLY;
+
+    DBMS_OUTPUT.PUT_LINE('Top employee: ' || v_top_emp_name || ' ' || v_top_emp_last_name || 
+    ' ($' || TO_CHAR(v_top_salary, 'FM999,999.00') || ')');
+
+EXCEPTION
+    WHEN no_employees THEN
+        DBMS_OUTPUT.PUT_LINE('No employee work for this department (' || v_dept_id || ')!');
+END;
